@@ -1,46 +1,48 @@
+const { createClient } = supabase;
 
-const { createClient } = supabase
-const client = createClient(
-    'https://jpjxtvstyvakfpsuwcoe.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwanh0dnN0eXZha2Zwc3V3Y29lIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NTI4MTkyMjksImV4cCI6MTk2ODM5NTIyOX0.cFCpd2-HqXjO3eoLI5aDxlii9GLeJd99opsrwuj6o6Y'
-);
-
+const _supabase = createClient('https://jxniupinnckcgofoisxu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bml1cGlubmNrY2dvZm9pc3h1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NTI4NzMxNjQsImV4cCI6MTk2ODQ0OTE2NH0.A8uUl97zDSoNu2zT9CSOkA_fitMUZZklDGJ20BMYk2g');
 const messagesElement = document.querySelector('#messages');
 
-function addMessageToPage(message) {
-    const element = document.createElement('li');
-    element.classList.add('card', 'm-2');
-    element.innerHTML = `
-    <div class="card-body">
-        <div class="row">
-            <div class="column-sm-2 avatar-container">
-                <img src="https://cdn.betterttv.net/emote/5590b223b344e2c42a9e28e3/3x" alt="Frog" class="mr-3">
-                <p class="avatar-username">${message.username}</p>
-            </div>
-            <div class="col-sm-10">
-                <p>${message.content}</p>
-            </div>
-        </div>
-        <div class="row">
-            <p class="col-sm-12 timestamp">${message.created_at}</p>
-        </div>
-    </div>`
-    messagesElement.append(element);
+function addMessage(message) {
+    const container = document.createElement('li');
+    container.classList.add('container');
+
+    container.innerHTML = `
+    <img src="https://cdn.betterttv.net/emote/5590b223b344e2c42a9e28e3/3x" alt="Avatar" style="width:100%;">
+    <p style="font-size: 12px; color: #555;">${DOMPurify.sanitize(message.username)}</p>
+    <p>${DOMPurify.sanitize(message.content)}</p>
+    <span class="time-right">${DOMPurify.sanitize(message.created_at)}</span>`
+
+    messagesElement.append(container);
 }
 
-async function init() {
-    const { data: messages } = await client
-    .from('Messages')
-    .select('*')
+async function getMessages() {
+    const { data: messages, error } = await _supabase
+        .from('messages')
+        .select('*');
+    
+    messages.forEach(addMessage);
 
-    messages.forEach(addMessageToPage);
-
-    client
-    .from('Messages')
-    .on('INSERT', (message) => {
-        addMessageToPage(message.new);
-        console.log('Message Received!', message);
-    })
+    _supabase
+        .from('messages')
+        .on('INSERT', message => {
+            addMessage(message.new);
+        })
+        .subscribe()
 }
 
-init();
+async function sendMessage() {
+    let message = document.querySelector('#message');
+
+    const { data, error } = await _supabase
+        .from('messages')
+        .insert([
+            { username: 'test_user', content: DOMPurify.sanitize(message.value) }
+        ])
+
+    message.value = "";
+}
+
+document.querySelector('#submitBtn').addEventListener("click", sendMessage);
+
+getMessages();
